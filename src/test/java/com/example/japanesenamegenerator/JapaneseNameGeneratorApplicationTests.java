@@ -1,60 +1,132 @@
 package com.example.japanesenamegenerator;
 
+import com.example.japanesenamegenerator.config.RetryOnTimeoutInterceptor;
+import com.example.japanesenamegenerator.sample.application.response.PlaceData;
+import com.example.japanesenamegenerator.sample.application.response.PlaceDetailDTO;
+import com.example.japanesenamegenerator.sample.domain.DinerInfo;
+import com.example.japanesenamegenerator.sample.repository.DinerInfoRepository;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SpringBootTest
 class JapaneseNameGeneratorApplicationTests {
 
+    @Autowired
+    private DinerInfoRepository dinerInfoRepository;
+
     @Test
     void contextLoads() throws IOException {
 
-        boolean flag = true;
         Map<String, String> map = getHeaders();
         int pageNo = 1;
         int collectedCount = 0;
-        do {
-            String requestUrl = String.format("https://m.map.kakao.com/actions/searchJson?type=PLACE&q=%s&wxEnc=LVVTRM&wyEnc=QNLQNMS&pageNo=%d&cidx=&sort=0&rcode=&busStopCount=135&placeCount=1077031&service=&qa_type=&datetime=", "%EC%8B%9D%EB%8B%B9", pageNo);
-            try (Response response = requestGetWithHeaders(requestUrl, map)) {
-                if (!response.isSuccessful() || response.request().url().pathSegments().contains("500.ko.html")) {
-                    map = getHeaders();
-                    continue;
-                } else {
-                    collectedCount += 15;
-                    String string = response.body().string();
-                    //todo: 응답 직렬화 -> 객체 -> db저장.
-                    System.out.println();
+        boolean flag = true;
+
+        Set<String> rectangleCoordinates = generateSquares(489403, 1118325, 506583, 1143865);
+        for (String rect : rectangleCoordinates) {
+            do {
+                String requestUrl = String.format("https://search.map.kakao.com/mapsearch/map.daum?page=%d&sort=0", pageNo);
+                requestUrl += "&callback=jQuery18106682811413432699_1725244537609&q=%EC%8B%9D%EB%8B%B9&msFlag=S&mcheck=Y&rect=";
+                requestUrl += rect;
+                flag = true;
+                try (Response response = requestGetWithHeaders(requestUrl, map)) {
+                    if (!response.isSuccessful() || response.request().url().pathSegments().contains("500.ko.html")) {
+                        map = getHeaders();
+                        continue;
+                    } else {
+                        String string = response.body().string();
+                        String responseBody = unWrapJsonString(string);
+
+                        //todo: 응답 직렬화 -> 객체 -> db저장.
+                        ObjectMapper objectMapper = new ObjectMapper()
+                                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                        PlaceData placeDto = objectMapper.readValue(responseBody, PlaceData.class);
+                        System.out.println(placeDto.getPlace_totalcount());
+                        //불러올게 없으면 다음 좌표로 이동.
+                        if (placeDto.getPlace_totalcount() == 0) {
+                            flag = false;
+                            break;
+                        }
+
+
+                        List<DinerInfo> list = placeDto.getPlace().stream().map(DinerInfo::new).toList();
+                        List<String> existingIds = dinerInfoRepository.findAllConfirmIds();
+
+                        List<DinerInfo> filteredList = list.stream()
+                                .filter(dinerInfo -> !existingIds.contains(dinerInfo.getConfirmId()))
+                                .collect(Collectors.toList());
+
+                        dinerInfoRepository.saveAll(filteredList);
+
+                        pageNo++;
+                        collectedCount += filteredList.size();
+
+                    }
 
                 }
-
             }
-
-            if (collectedCount > 10000) flag = false;
-
+            while (flag);
+            pageNo = 1;
         }
-        while (flag);
 
+    }
+    //https://place.map.kakao.com/880498914
+
+    @Test
+    void getDetail() throws IOException {
+
+        ObjectMapper objectMapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        List<String> existingIds = dinerInfoRepository.findAllConfirmIds();
+        existingIds.forEach(id -> {
+            String url = "https://place.map.kakao.com/main/v/"+id;
+            try (Response response = requestGetWithHeaders(url, null)) {
+                String string = response.body().string();
+                PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
+                System.out.println();
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+
+    }
+
+
+
+
+
+    private static String unWrapJsonString(String input) {
+        int startIndex = input.indexOf('(');
+        int endIndex = input.lastIndexOf(')');
+
+        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+            return input.substring(startIndex + 1, endIndex).trim();
+        } else {
+            throw new IllegalArgumentException("Invalid JSON string");
+        }
     }
 
     private static Response requestGetWithHeaders(String url, Map<String, String> header)
             throws IOException {
         OkHttpClient client = new OkHttpClient().newBuilder()
                 .connectTimeout(Duration.ofSeconds(15L))
-                .readTimeout(Duration.ofSeconds(15L)).build();
+                .readTimeout(Duration.ofSeconds(15L))
+                .addInterceptor(new RetryOnTimeoutInterceptor(5, 15000))
+                .build();
 
         Request.Builder builder = new Request.Builder().url(url).method("GET", null);
         if (header != null) {
@@ -78,13 +150,10 @@ class JapaneseNameGeneratorApplicationTests {
 
             cookie += "__T=1;";
             cookie += "__T_SECURE=1;";
-            cookie += "LOCAL_LOG_SUID=3wqZY6Fgx9UJ_20240826232243487;";
-            cookie += "maptype=roadmap;";
-            cookie += "nowCenter=606160%2C952885%2C11;";
 
             Map<String, String> newHeaders = new HashMap<>();
-            newHeaders.put("Host", "m.map.kakao.com");
-            newHeaders.put("referer", "https://m.map.kakao.com/actions/searchView?q=%EC%8B%9D%EB%8B%B9&wxEnc=LVVTRM&wyEnc=QNLQNMS&lvl=7&BT=1724856045720");
+            newHeaders.put("Host", "search.map.kakao.com");
+            newHeaders.put("referer", "https://map.kakao.com/");
             newHeaders.put("cookie", cookie);
 
             return newHeaders;
@@ -108,6 +177,19 @@ class JapaneseNameGeneratorApplicationTests {
         Request request = builder.build();
 
         return client.newCall(request).execute();
+    }
+
+    public Set<String> generateSquares(int x1, int y1, int x2, int y2) {
+        Set<String> coordinates = new HashSet<>();
+
+        // 100 단위로 쪼개기
+        for (int x = x1; x < x2; x += 500) {
+            for (int y = y1; y < y2; y += 500) {
+                coordinates.add(String.format("%d,%d,%d,%d", x, y, x + 500, y + 500));
+            }
+        }
+
+        return coordinates;
     }
 
 }
