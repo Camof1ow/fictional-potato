@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.sample;
+package com.example.japanesenamegenerator.diner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

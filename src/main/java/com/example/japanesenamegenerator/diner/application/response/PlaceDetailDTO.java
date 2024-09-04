@@ -1,10 +1,14 @@
-package com.example.japanesenamegenerator.sample.application.response;
+package com.example.japanesenamegenerator.diner.application.response;
 
+import com.example.japanesenamegenerator.diner.domain.DinerComment;
+import com.example.japanesenamegenerator.diner.domain.DinerDetail;
+import com.example.japanesenamegenerator.diner.domain.DinerDetail.Menu;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -26,25 +30,25 @@ public class PlaceDetailDTO {
     private Photo photo;
 
     @Getter
-    public static class Photo{
+    public static class Photo {
         private List<PhotoObject> photoList;
 
         @Getter
-        public static class PhotoObject{
+        public static class PhotoObject {
             private String categoryName;
             private int photoCount;
             private List<PhotoUrl> list;
         }
 
         @Getter
-        public static class PhotoUrl{
+        public static class PhotoUrl {
             private String orgurl;
             private String photoid;
         }
     }
 
     @Getter
-    public static class MenuInfo{
+    public static class MenuInfo {
         private int menuboardphotocount;
         private List<String> menuboardphotourlList;
         private List<Menu> menuList;
@@ -62,7 +66,7 @@ public class PlaceDetailDTO {
     }
 
     @Getter
-    public static class TrendRank{
+    public static class TrendRank {
         private Meta meta;
         private List<Group> groups;
     }
@@ -91,14 +95,14 @@ public class PlaceDetailDTO {
         private String thumbnail;
 
         @Getter
-        public static class Region{
+        public static class Region {
             private int depth;
             private String id;
             private String name;
         }
 
         @Getter
-        public static class AnalyzedInfo{
+        public static class AnalyzedInfo {
             private int click_count_increase_rate;
             private int dest_count_increase_rate;
             private boolean hot_rank;
@@ -108,13 +112,13 @@ public class PlaceDetailDTO {
 
 
     @Getter
-    public static class Meta{
+    public static class Meta {
         private List<CateOrMenu> category_or_menus;
         private List<String> depth1_regions_for_show_depth3_region;
     }
 
     @Getter
-    public static class CateOrMenu{
+    public static class CateOrMenu {
         private String value;
         private String name;
         private String description;
@@ -343,6 +347,93 @@ public class PlaceDetailDTO {
             private String url;
             private String description;
         }
+
+    }
+
+    public List<DinerComment> toDinerComments() {
+        Review comment = this.getComment();
+        BasicInfo basicInfo = this.getBasicInfo();
+        if(comment == null || comment.getList() == null || comment.getList().isEmpty()){
+            return null;
+        }
+
+        return comment.getList().stream().map(com -> DinerComment.builder()
+                .confirmId(basicInfo.getCid())
+                .username(com.getUsername())
+                .contents(com.getContents())
+                .photoList(com.getPhotoList().stream()
+                        .map(Comment.Photo::getUrl).toList())
+                .profile(com.getProfile())
+                .date(com.getDate())
+                .thumbnail(com.getThumbnail())
+                .build()).toList();
+    }
+
+    public DinerDetail toDetailEntity() {
+
+        BasicInfo basicInfo = this.getBasicInfo();
+        List<StrengthCount> strengthCounts = this.getComment().getStrengthCounts();
+        StrengthCount taste = strengthCounts.stream().filter(strengthCount -> strengthCount.id == 5).findFirst().orElseGet(() -> null);
+        StrengthCount price = strengthCounts.stream().filter(strengthCount -> strengthCount.id == 1).findFirst().orElseGet(() -> null);
+        StrengthCount kindness = strengthCounts.stream().filter(strengthCount -> strengthCount.id == 2).findFirst().orElseGet(() -> null);
+        StrengthCount mood = strengthCounts.stream().filter(strengthCount -> strengthCount.id == 3).findFirst().orElseGet(() -> null);
+        StrengthCount parking = strengthCounts.stream().filter(strengthCount -> strengthCount.id == 4).findFirst().orElseGet(() -> null);
+
+        int tasteRank = taste != null ? taste.getCount() : 0;
+        int priceRank = price != null ? price.getCount() : 0;
+        int kindnessRank = kindness != null ? kindness.getCount() : 0;
+        int moodRank = mood != null ? mood.getCount() : 0;
+        int parkingRank = parking != null ? parking.getCount() : 0;
+        List<Menu> menuList = new ArrayList<>();
+        if (this.getMenuInfo() != null) {
+            menuList = this.getMenuInfo().getMenuList().stream().map(
+                    menu -> {
+                        Integer menuPrice = null;
+                        if (menu.getPrice() != null) {
+                            menuPrice = Integer.parseInt(menu.getPrice().replaceAll("[^0-9]", ""));
+                        }
+
+                        return Menu.builder()
+                                .desc(menu.getDesc())
+                                .name(menu.getMenu())
+                                .price(menuPrice)
+                                .recommend(menu.isRecommend())
+                                .build();
+                    }
+            ).toList();
+        }
+
+        List<String> photoList = new ArrayList<>();
+        if (this.getPhoto() != null) {
+            photoList = this.getPhoto().getPhotoList().getFirst().getList().stream()
+                    .map(Photo.PhotoUrl::getOrgurl).toList();
+        }
+
+        return DinerDetail.builder()
+                .confirmId(basicInfo.getCid())
+                .tel(basicInfo.getPhonenum())
+                .mainPhoto(basicInfo.getMainphotourl())
+                .name(basicInfo.getPlacenamefull())
+                .address(DinerDetail.Address.builder()
+                        .newAddress(basicInfo.getAddress().getNewaddr().getNewaddrfull())
+                        .zipCode(basicInfo.getAddress().getNewaddr().getBsizonno())
+                        .addressDepth1(basicInfo.getAddress().getRegion().getNewaddrfullname())
+                        .addressDepth2(basicInfo.getAddress().getRegion().getName3())
+                        .addressDepth3(basicInfo.getAddress().getAddrbunho())
+                        .detail(basicInfo.getAddress().getAddrdetail())
+                        .build())
+                .x(basicInfo.getWpointx())
+                .y(basicInfo.getWpointy())
+                .tasteRank(tasteRank)
+                .priceRank(priceRank)
+                .moodRank(moodRank)
+                .kindnessRank(kindnessRank)
+                .parkingRank(parkingRank)
+                .category1(basicInfo.getCategory().getCate1name())
+                .category2(basicInfo.getCategory().getCatename())
+                .menuList(menuList)
+                .photoList(photoList)
+                .build();
 
     }
 

@@ -1,4 +1,4 @@
-package com.example.japanesenamegenerator.sample;
+package com.example.japanesenamegenerator.diner;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

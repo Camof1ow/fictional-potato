@@ -1,6 +1,6 @@
-package com.example.japanesenamegenerator.sample.repository;
+package com.example.japanesenamegenerator.diner.repository;
 
-import com.example.japanesenamegenerator.sample.domain.DinerInfo;
+import com.example.japanesenamegenerator.diner.domain.DinerInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

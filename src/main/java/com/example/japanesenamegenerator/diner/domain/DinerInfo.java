@@ -1,6 +1,6 @@
-package com.example.japanesenamegenerator.sample.domain;
+package com.example.japanesenamegenerator.diner.domain;
 
-import com.example.japanesenamegenerator.sample.application.response.PlaceData.Place;
+import com.example.japanesenamegenerator.diner.application.response.PlaceData.Place;
 
 import jakarta.persistence.*;
 import lombok.Getter;

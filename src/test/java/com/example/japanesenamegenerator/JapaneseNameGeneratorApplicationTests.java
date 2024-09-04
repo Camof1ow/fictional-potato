@@ -1,13 +1,16 @@
 package com.example.japanesenamegenerator;
 
 import com.example.japanesenamegenerator.config.RetryOnTimeoutInterceptor;
-import com.example.japanesenamegenerator.sample.application.response.PlaceData;
-import com.example.japanesenamegenerator.sample.application.response.PlaceDetailDTO;
-import com.example.japanesenamegenerator.sample.domain.DinerInfo;
-import com.example.japanesenamegenerator.sample.repository.DinerInfoRepository;
+import com.example.japanesenamegenerator.diner.application.response.PlaceData;
+import com.example.japanesenamegenerator.diner.application.response.PlaceDetailDTO;
+import com.example.japanesenamegenerator.diner.domain.DinerComment;
+import com.example.japanesenamegenerator.diner.domain.DinerDetail;
+import com.example.japanesenamegenerator.diner.domain.DinerInfo;
+import com.example.japanesenamegenerator.diner.repository.DinerCommentRepository;
+import com.example.japanesenamegenerator.diner.repository.DinerDetailRepository;
+import com.example.japanesenamegenerator.diner.repository.DinerInfoRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -25,6 +28,10 @@ class JapaneseNameGeneratorApplicationTests {
 
     @Autowired
     private DinerInfoRepository dinerInfoRepository;
+    @Autowired
+    private DinerDetailRepository dinerDetailRepository;
+    @Autowired
+    private DinerCommentRepository dinerCommentRepository;
 
     @Test
     void contextLoads() throws IOException {
@@ -95,6 +102,13 @@ class JapaneseNameGeneratorApplicationTests {
             try (Response response = requestGetWithHeaders(url, null)) {
                 String string = response.body().string();
                 PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
+                DinerDetail detail = placeDetailDTO.toDetailEntity();
+                List<DinerComment> comments = placeDetailDTO.toDinerComments();
+                dinerDetailRepository.save(detail);
+                if(comments != null){
+                    dinerCommentRepository.saveAll(comments);
+                }
+
                 System.out.println();
 
             } catch (IOException e) {
