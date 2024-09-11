@@ -1,6 +1,7 @@
 package com.example.japanesenamegenerator;
 
 import com.example.japanesenamegenerator.config.RetryOnTimeoutInterceptor;
+import com.example.japanesenamegenerator.diner.application.DinerService;
 import com.example.japanesenamegenerator.diner.application.response.PlaceData;
 import com.example.japanesenamegenerator.diner.application.response.PlaceDetailDTO;
 import com.example.japanesenamegenerator.diner.domain.DinerComment;
@@ -11,12 +12,11 @@ import com.example.japanesenamegenerator.diner.repository.DinerDetailRepository;
 import com.example.japanesenamegenerator.diner.repository.DinerInfoRepository;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -32,6 +32,9 @@ class JapaneseNameGeneratorApplicationTests {
     private DinerDetailRepository dinerDetailRepository;
     @Autowired
     private DinerCommentRepository dinerCommentRepository;
+    @Autowired
+    private DinerService dinerService;
+
 
     @Test
     void contextLoads() throws IOException {
@@ -92,35 +95,45 @@ class JapaneseNameGeneratorApplicationTests {
     //https://place.map.kakao.com/880498914
 
     @Test
-    void getDetail() throws IOException {
+    void getDetail() {
 
         ObjectMapper objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         List<String> existingIds = dinerInfoRepository.findAllConfirmIds();
-        existingIds.forEach(id -> {
-            String url = "https://place.map.kakao.com/main/v/"+id;
-            try (Response response = requestGetWithHeaders(url, null)) {
-                String string = response.body().string();
-                PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
-                DinerDetail detail = placeDetailDTO.toDetailEntity();
-                List<DinerComment> comments = placeDetailDTO.toDinerComments();
-                dinerDetailRepository.save(detail);
-                if(comments != null){
-                    dinerCommentRepository.saveAll(comments);
+        for (String id : existingIds) {
+            if (!dinerDetailRepository.existsByConfirmId(Long.valueOf(id))) {
+                String url = "https://place.map.kakao.com/main/v/" + id;
+                try (Response response = requestGetWithHeaders(url, null)) {
+                    String string = response.body().string();
+                    PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
+                    DinerDetail detail = placeDetailDTO.toDetailEntity();
+                    if (detail != null) {
+                        dinerDetailRepository.save(detail);
+                    } else {
+                        dinerService.deleteInfo(id);
+                    }
+                    PlaceDetailDTO.Review comment = placeDetailDTO.getComment();
+                    if (comment != null && comment.getList() != null && !comment.getList().isEmpty()) {
+                        List<DinerComment> comments = placeDetailDTO.toDinerComments();
+                        if (comments != null) {
+                            dinerCommentRepository.saveAll(comments);
+                        }
+                    }
+                    System.out.println();
+                } catch (IOException e) {
+                    System.out.println(e.getMessage());
                 }
-
-                System.out.println();
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
-        });
+        }
+    }
+
+    @Test
+    void replaceName(){
+
+        dinerService.updateCommentUsername();
 
 
     }
-
-
-
 
 
     private static String unWrapJsonString(String input) {
@@ -175,6 +188,29 @@ class JapaneseNameGeneratorApplicationTests {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public static Response requestPost(String url, String requestBody)
+            throws IOException {
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(requestBody, mediaType);
+
+        return request("POST", url, body);
+    }
+
+    private static Response request(String method, String url, RequestBody body)
+            throws IOException {
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .retryOnConnectionFailure(true)
+                .connectTimeout(Duration.ofSeconds(120L))
+                .readTimeout(Duration.ofSeconds(120L))
+                .build();
+
+        Request.Builder builder = new Request.Builder().url(url).method(method, body);
+//        header.forEach(builder::addHeader);
+        Request request = builder.build();
+
+        return client.newCall(request).execute();
     }
 
     public static Response requestGetWithNoRedirect(String url, Map<String, String> header) throws IOException {
