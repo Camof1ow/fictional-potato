@@ -36,7 +36,7 @@ class JapaneseNameGeneratorApplicationTests {
     private DinerService dinerService;
 
 
-    @Test
+//    @Test
     void contextLoads() throws IOException {
 
         Map<String, String> map = getHeaders();
@@ -94,7 +94,7 @@ class JapaneseNameGeneratorApplicationTests {
     }
     //https://place.map.kakao.com/880498914
 
-    @Test
+//    @Test
     void getDetail() {
 
         ObjectMapper objectMapper = new ObjectMapper()

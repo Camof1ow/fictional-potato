@@ -5,6 +5,8 @@ import com.example.japanesenamegenerator.diner.application.response.DinerDetailR
 import com.example.japanesenamegenerator.diner.application.response.DinerInfoResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,10 +23,10 @@ public class DinerController {
 
     @Operation(summary = "Get diners with coordinates", description = "Fetch diners within specified coordinates.")
     @GetMapping("/coord")
-    public List<DinerInfoResponseDTO> getDinerWithCoordinate(@RequestParam Double lon1, @RequestParam Double lon2,
-                                          @RequestParam Double lat1,@RequestParam Double lat2) {
+    public Page<DinerInfoResponseDTO> getDinerWithCoordinate(@RequestParam Double lon1, @RequestParam Double lon2,
+                                                             @RequestParam Double lat1, @RequestParam Double lat2, Pageable pageable) {
 
-        return dinerService.getDinersInArea(lon1, lon2, lat1, lat2);
+        return dinerService.getDinersInArea(lon1, lon2, lat1, lat2, pageable);
     }
 
     @Operation(summary = "Get diner detail", description = "Fetch detailed information for a specific diner.")

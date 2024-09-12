@@ -40,3 +40,4 @@ out/
 application.properties
 application.yml
 
+/src/main/generated/

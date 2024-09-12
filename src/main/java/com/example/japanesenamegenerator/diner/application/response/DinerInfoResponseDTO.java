@@ -13,6 +13,7 @@ public class DinerInfoResponseDTO {
     private String address;
     private String tel;
     private String image;
+    private Long confirmId;
 
     private String lastCategoryName;
     private String categoryDepth1;
@@ -64,7 +65,8 @@ public class DinerInfoResponseDTO {
                                 String addinfoParking,
                                 String addinfoPet,
                                 String addinfoSmokingroom,
-                                String addinfoWifi) {
+                                String addinfoWifi,
+                                Long confirmId) {
         this.id = id;
         this.name = name;
         this.address = address;
@@ -92,6 +94,7 @@ public class DinerInfoResponseDTO {
         this.addinfoPet = addinfoPet;
         this.addinfoSmokingroom = addinfoSmokingroom;
         this.addinfoWifi = addinfoWifi;
+        this.confirmId = confirmId;
     }
 
     public static DinerInfoResponseDTO from(DinerInfo dinerInfo) {
@@ -122,6 +125,7 @@ public class DinerInfoResponseDTO {
         String addinfoPet = dinerInfo.getAddinfoPet();
         String addinfoSmokingroom = dinerInfo.getAddinfoSmokingroom();
         String addinfoWifi = dinerInfo.getAddinfoWifi();
+        Long confirmId = Long.valueOf(dinerInfo.getConfirmId());
 
         return DinerInfoResponseDTO.builder()
                 .id(id)
@@ -151,6 +155,7 @@ public class DinerInfoResponseDTO {
                 .addinfoPet(addinfoPet)
                 .addinfoSmokingroom(addinfoSmokingroom)
                 .addinfoWifi(addinfoWifi)
+                .confirmId(confirmId)
                 .build();
     }
 

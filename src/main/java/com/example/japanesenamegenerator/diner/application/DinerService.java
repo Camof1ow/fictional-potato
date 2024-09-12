@@ -9,7 +9,10 @@ import com.example.japanesenamegenerator.diner.domain.DinerInfo;
 import com.example.japanesenamegenerator.diner.repository.DinerCommentRepository;
 import com.example.japanesenamegenerator.diner.repository.DinerDetailRepository;
 import com.example.japanesenamegenerator.diner.repository.DinerInfoRepository;
+import com.example.japanesenamegenerator.diner.repository.DinerQueryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ public class DinerService {
     private final DinerInfoRepository dinerInfoRepository;
     private final DinerCommentRepository dinerCommentRepository;
     private final DinerDetailRepository dinerDetailRepository;
+    private final DinerQueryRepository dinerQueryRepository;
 
     @Transactional
     public void deleteInfo(String confirmId) {
@@ -37,13 +41,12 @@ public class DinerService {
         }
     }
 
-    public List<DinerInfoResponseDTO> getDinersInArea(Double lon1, Double lon2, Double lat1, Double lat2) {
+    public Page<DinerInfoResponseDTO> getDinersInArea(Double lon1, Double lon2, Double lat1, Double lat2, Pageable pageable) {
         Boolean isValid = coordIsValid(lon1, lon2, lat1, lat2);
         if (!isValid) {
             return null;
         }
-        List<DinerInfo> allByCoordinate = dinerInfoRepository.findAllByCoordinate(lon1, lon2, lat1, lat2);
-        return allByCoordinate.stream().map(DinerInfoResponseDTO::from).toList();
+        return dinerQueryRepository.getDinersInArea(lon1, lon2, lat1, lat2, pageable);
     }
 
     public DinerDetailResponseDTO getDinerDetail(Long confirmId){
