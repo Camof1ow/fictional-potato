@@ -12,15 +12,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/name")
 public class NameController {
-
-    private final NameService nameService;
-
-    @GetMapping
-    public NameResponse generateName(@RequestParam String firstName,
-                                         @RequestParam String lastName,
-                                         @RequestParam String gender) {
-
-        return nameService.getNameInfo(lastName,firstName, gender);
-    }
+//
+//    private final NameService nameService;
+//
+//    @GetMapping
+//    public NameResponse generateName(@RequestParam String firstName,
+//                                         @RequestParam String lastName,
+//                                         @RequestParam String gender) {
+//
+//        return nameService.getNameInfo(lastName,firstName, gender);
+//    }
 
 }

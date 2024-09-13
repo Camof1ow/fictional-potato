@@ -14,16 +14,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class LikeApiController {
 
     private final LikeService likeService;
-
-
-    @GetMapping("/count")
-    public LikeResponseDto getCount(){
-        return likeService.getLikeCount();
-    }
-
-    @GetMapping("/up")
-    public LikeResponseDto upVote(){
-        return likeService.likeUp();
-    }
+//
+//
+//    @GetMapping("/count")
+//    public LikeResponseDto getCount(){
+//        return likeService.getLikeCount();
+//    }
+//
+//    @GetMapping("/up")
+//    public LikeResponseDto upVote(){
+//        return likeService.likeUp();
+//    }
 
 }

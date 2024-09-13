@@ -22,10 +22,10 @@ public class ActivistApiController {
 
     private final ActivistService activistService;
 
-    @DeleteMapping
-    public void delete() {
-        activistService.deleteAll();
-    }
+//    @DeleteMapping
+//    public void delete() {
+//        activistService.deleteAll();
+//    }
 
 //    @PostMapping
 //    public void create() {
@@ -43,11 +43,11 @@ public class ActivistApiController {
 //    public boolean updateImages(){
 //        return activistService.updateImages();
 //    }
-
-    @GetMapping
-    public List<ActivistResponse> get(@RequestParam String name){
-        return activistService.findSameOrSimilarName(name);
-    }
-
+//
+//    @GetMapping
+//    public List<ActivistResponse> get(@RequestParam String name){
+//        return activistService.findSameOrSimilarName(name);
+//    }
+//
 
 }

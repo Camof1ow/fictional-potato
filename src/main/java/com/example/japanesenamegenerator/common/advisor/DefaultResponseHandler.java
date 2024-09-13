@@ -33,6 +33,11 @@ public class DefaultResponseHandler implements ResponseBodyAdvice<Object> {
         MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType,
         ServerHttpRequest request, ServerHttpResponse response) {
 
+        String path = request.getURI().getPath();
+        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+            return body; // Swagger 관련 응답은 변환하지 않음
+        }
+
         if (body instanceof String) {
             return handleStringResponse(body);
         }

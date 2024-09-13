@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/repair")
 public class RepairController {
-    private final RepairService repairService;
-
-    @PostMapping("")
-    public RepairResponseDto repairRequest(@RequestBody RepairRequestDto repairRequestDto) {
-        return repairService.requestRepair(repairRequestDto);
-    }
+//    private final RepairService repairService;
+//
+//    @PostMapping("")
+//    public RepairResponseDto repairRequest(@RequestBody RepairRequestDto repairRequestDto) {
+//        return repairService.requestRepair(repairRequestDto);
+//    }
 
 }
