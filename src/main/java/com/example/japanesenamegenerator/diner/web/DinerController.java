@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,9 +55,11 @@ public class DinerController {
                     )
             }
     )
-    @GetMapping("/coord")
-    public Page<DinerInfoResponseDTO> getDinerWithCoordinate(@RequestParam Double lon1, @RequestParam Double lon2,
-                                                             @RequestParam Double lat1, @RequestParam Double lat2,
+    @GetMapping("/coordinate")
+    public Page<DinerInfoResponseDTO> getDinerWithCoordinate(@RequestParam @Validated Double lon1,
+                                                             @RequestParam @Validated Double lon2,
+                                                             @RequestParam @Validated Double lat1,
+                                                             @RequestParam @Validated Double lat2,
                                                              @Parameter(hidden = true) Pageable pageable) {
 
         return dinerService.getDinersInArea(lon1, lon2, lat1, lat2, pageable);
@@ -70,8 +73,8 @@ public class DinerController {
                     example = "1715457845"
             )}
     )
-    @GetMapping("/detail/{confirmId}")
-    public DinerDetailResponseDTO getDinerDetail(@PathVariable Long confirmId) {
+    @GetMapping("/detail/{confirm-id}")
+    public DinerDetailResponseDTO getDinerDetail(@PathVariable(name="confirm-id") @Validated Long confirmId) {
         return dinerService.getDinerDetail(confirmId);
     }
 

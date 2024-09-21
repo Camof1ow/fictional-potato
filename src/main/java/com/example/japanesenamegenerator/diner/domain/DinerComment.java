@@ -2,6 +2,8 @@ package com.example.japanesenamegenerator.diner.domain;
 
 import com.example.japanesenamegenerator.diner.entityconverter.StringListConverter;
 import jakarta.persistence.*;
+import jakarta.persistence.Id;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

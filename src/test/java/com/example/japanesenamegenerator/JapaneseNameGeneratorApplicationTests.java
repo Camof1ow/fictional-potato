@@ -4,19 +4,14 @@ import com.example.japanesenamegenerator.config.RetryOnTimeoutInterceptor;
 import com.example.japanesenamegenerator.diner.application.DinerService;
 import com.example.japanesenamegenerator.diner.application.response.PlaceData;
 import com.example.japanesenamegenerator.diner.application.response.PlaceDetailDTO;
-import com.example.japanesenamegenerator.diner.domain.DinerComment;
-import com.example.japanesenamegenerator.diner.domain.DinerDetail;
-import com.example.japanesenamegenerator.diner.domain.DinerInfo;
-import com.example.japanesenamegenerator.diner.repository.DinerCommentRepository;
-import com.example.japanesenamegenerator.diner.repository.DinerDetailRepository;
-import com.example.japanesenamegenerator.diner.repository.DinerInfoRepository;
+import com.example.japanesenamegenerator.diner.domain.*;
+import com.example.japanesenamegenerator.diner.repository.*;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -34,9 +29,13 @@ class JapaneseNameGeneratorApplicationTests {
     private DinerCommentRepository dinerCommentRepository;
     @Autowired
     private DinerService dinerService;
+//    @Autowired
+//    private DinerMenuRepository dinerMenuRepository;
+//    @Autowired
+//    private DinerPhotoRepository dinerPhotoRepository;
 
 
-//    @Test
+    //    @Test
     void contextLoads() throws IOException {
 
         Map<String, String> map = getHeaders();
@@ -94,7 +93,7 @@ class JapaneseNameGeneratorApplicationTests {
     }
     //https://place.map.kakao.com/880498914
 
-//    @Test
+    //    @Test
     void getDetail() {
 
         ObjectMapper objectMapper = new ObjectMapper()
@@ -128,12 +127,67 @@ class JapaneseNameGeneratorApplicationTests {
     }
 
     @Test
-    void replaceName(){
+    void testtest(){
+            Long confirm_id = 303807L;
 
-        dinerService.updateCommentUsername();
 
 
     }
+
+
+//    @Test
+//    void replaceName() {
+//
+//        dinerService.updateCommentUsername();
+//    }
+
+//    @Test
+//    void replaceMenuEntity() {
+//
+//        List<String> allConfirmIds = dinerDetailRepository.findAllConfirmIds();
+//
+//        for (String id : allConfirmIds) {
+//            DinerDetail byConfirmId = dinerDetailRepository.findByConfirmId(Long.valueOf(id)).get();
+//            List<DinerDetail.Menu> menuList = byConfirmId.getMenuList();
+//            if (menuList != null && !menuList.isEmpty()) {
+//
+//                List<DinerMenu> dinerMenuStream = menuList.stream().map(dinerDetailMenu ->
+//                        DinerMenu.builder()
+//                                .confirmId(byConfirmId.getConfirmId())
+//                                .price(dinerDetailMenu.getPrice())
+//                                .name(dinerDetailMenu.getName())
+//                                .desc(dinerDetailMenu.getDesc())
+//                                .recommend(dinerDetailMenu.isRecommend())
+//                                .build()
+//                ).toList();
+//                dinerMenuRepository.saveAll(dinerMenuStream);
+//            }
+//        }
+//
+//
+//
+//        System.out.println();
+//
+//
+//    }
+
+//    @Test
+//    void replaceList() {
+//        List<String> allConfirmIds = dinerDetailRepository.findAllConfirmIds();
+//        for (String id : allConfirmIds) {
+//            DinerDetail byConfirmId = dinerDetailRepository.findByConfirmId(Long.valueOf(id)).get();
+//            List<String> photoList = byConfirmId.getPhotoList();
+//            if (photoList != null && !photoList.isEmpty()) {
+//                List<DinerPhoto> list = photoList.stream().map(photo -> DinerPhoto.builder()
+//                        .confirmId(Long.parseLong(id))
+//                        .photoUrl(photo)
+//                        .build()).toList();
+//
+//                dinerPhotoRepository.saveAll(list);
+//            }
+//        }
+//    }
+
 
 
     private static String unWrapJsonString(String input) {

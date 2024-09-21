@@ -2,7 +2,7 @@ package com.example.japanesenamegenerator.diner.application.response;
 
 import com.example.japanesenamegenerator.diner.domain.DinerComment;
 import com.example.japanesenamegenerator.diner.domain.DinerDetail;
-import com.example.japanesenamegenerator.diner.domain.DinerDetail.Menu;
+import com.example.japanesenamegenerator.diner.domain.DinerMenu;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -414,25 +414,6 @@ public class PlaceDetailDTO {
             int kindnessRank = kindness != null ? kindness.getCount() : 0;
             int moodRank = mood != null ? mood.getCount() : 0;
             int parkingRank = parking != null ? parking.getCount() : 0;
-            List<Menu> menuList = new ArrayList<>();
-            if (this.getMenuInfo() != null) {
-                menuList = this.getMenuInfo().getMenuList().stream().map(
-                        menu -> {
-                            Integer menuPrice = null;
-                            try {
-                                menuPrice = Integer.parseInt(menu.getPrice().replaceAll("[^0-9]", ""));
-                            } catch (Exception e) {
-                            }
-
-                            return Menu.builder()
-                                    .desc(menu.getDesc())
-                                    .name(menu.getMenu())
-                                    .price(menuPrice)
-                                    .recommend(menu.isRecommend())
-                                    .build();
-                        }
-                ).toList();
-            }
 
             List<String> photoList = new ArrayList<>();
             if (this.getPhoto() != null) {
@@ -469,16 +450,36 @@ public class PlaceDetailDTO {
                     .parkingRank(parkingRank)
                     .category1(basicInfo.getCategory().getCate1name())
                     .category2(basicInfo.getCategory().getCatename())
-                    .menuList(menuList)
-                    .photoList(photoList)
                     .build();
 
         } catch (Exception e) {
             return null;
         }
 
-
     }
 
+    public List<DinerMenu> toMenuEntities() {
+        List<DinerMenu> menuList = new ArrayList<>();
+        BasicInfo basicInfo = this.getBasicInfo();
 
+        if (this.getMenuInfo() != null) {
+            menuList = this.getMenuInfo().getMenuList().stream().map(
+                    menu -> {
+                        Integer menuPrice = null;
+                        try {
+                            menuPrice = Integer.parseInt(menu.getPrice().replaceAll("[^0-9]", ""));
+                        } catch (Exception e) {
+                        }
+
+                        return DinerMenu.builder()
+                                .desc(menu.getDesc())
+                                .name(menu.getMenu())
+                                .price(menuPrice)
+                                .recommend(menu.isRecommend())
+                                .build();
+                    }
+            ).toList();
+        }
+        return menuList;
+    }
 }

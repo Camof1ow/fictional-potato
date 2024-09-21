@@ -16,12 +16,11 @@ import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
-public class DinerQueryRepository {
+public class DinerQueryRepository{
 
     private final JPAQueryFactory queryFactory;
 
-
-    public Page<DinerInfoResponseDTO> getDinersInArea(Double lon1, Double lon2, Double lat1, Double lat2, Pageable pageable) {
+    public Page<DinerInfoResponseDTO> findAllByCoordinate(Double lon1, Double lon2, Double lat1, Double lat2, Pageable pageable) {
         QDinerInfo qDinerInfo = QDinerInfo.dinerInfo;
 
         QueryResults<DinerInfo> queryResults = queryFactory

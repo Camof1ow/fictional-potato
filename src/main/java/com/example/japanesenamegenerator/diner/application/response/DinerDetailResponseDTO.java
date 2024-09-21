@@ -2,10 +2,13 @@ package com.example.japanesenamegenerator.diner.application.response;
 
 import com.example.japanesenamegenerator.diner.domain.DinerComment;
 import com.example.japanesenamegenerator.diner.domain.DinerDetail;
+import com.example.japanesenamegenerator.diner.domain.DinerMenu;
+import com.example.japanesenamegenerator.diner.domain.DinerPhoto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -29,7 +32,7 @@ public class DinerDetailResponseDTO {
     private int parkingRank;
 
     private List<String> photoList;
-    private List<DinerDetail.Menu> menuList;
+    private List<DinerMenuDTO> menuList;
     private List<DinerCommentResponseDTO> commentList;
 
     @Builder
@@ -49,7 +52,7 @@ public class DinerDetailResponseDTO {
                                   int kindnessRank,
                                   int parkingRank,
                                   List<String> photoList,
-                                  List<DinerDetail.Menu> menuList,
+                                  List<DinerMenuDTO> menuList,
                                   List<DinerCommentResponseDTO> commentList) {
         this.id = id;
         this.confirmId = confirmId;
@@ -72,9 +75,9 @@ public class DinerDetailResponseDTO {
 
     }
 
-    public static DinerDetailResponseDTO from(DinerDetail dinerDetail, List<DinerComment> commentList ){
+    public static DinerDetailResponseDTO from(DinerDetail dinerDetail, List<DinerComment> commentList, List<DinerMenu> dinerMenuList, List<DinerPhoto> photoList ){
 
-
+        List<String> photoStringList = photoList.stream().map(DinerPhoto::getPhotoUrl).toList();
 
         return DinerDetailResponseDTO.builder()
                 .id(dinerDetail.getId())
@@ -92,14 +95,10 @@ public class DinerDetailResponseDTO {
                 .moodRank(dinerDetail.getMoodRank())
                 .kindnessRank(dinerDetail.getKindnessRank())
                 .parkingRank(dinerDetail.getParkingRank())
-                .photoList(dinerDetail.getPhotoList())
-                .menuList(dinerDetail.getMenuList())
+                .photoList(photoStringList)
+                .menuList(DinerMenuDTO.getListFrom(dinerMenuList))
                 .commentList(DinerCommentResponseDTO.getListFrom(commentList))
                 .build();
     }
-
-
-
-
 
 }

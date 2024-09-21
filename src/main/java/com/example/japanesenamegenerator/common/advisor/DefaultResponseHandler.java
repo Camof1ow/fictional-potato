@@ -60,7 +60,6 @@ public class DefaultResponseHandler implements ResponseBodyAdvice<Object> {
 
     private Map<String, Object> createResponseData(Object body) {
         return Map.of(
-            "code", 1,
             "message", "success",
             "contents", body
         );

@@ -3,6 +3,8 @@ package com.example.japanesenamegenerator.diner.domain;
 import com.example.japanesenamegenerator.diner.application.response.PlaceData.Place;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Id;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

@@ -1,13 +1,10 @@
 package com.example.japanesenamegenerator.diner.domain;
-
-import com.example.japanesenamegenerator.diner.application.response.PlaceDetailDTO;
-import com.example.japanesenamegenerator.diner.entityconverter.MenuConverter;
-import com.example.japanesenamegenerator.diner.entityconverter.StringListConverter;
 import jakarta.persistence.*;
+import jakarta.persistence.Id;
 import lombok.*;
-import org.apache.commons.beanutils.converters.StringConverter;
 
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -77,38 +74,12 @@ public class DinerDetail {
     @Column(name="parking_rank")
     private int parkingRank;
 
-    @Convert(converter = StringListConverter.class)
-    @Column(name="photo_list")
-    private List<String> photoList;
-    @Convert(converter = MenuConverter.class)
-    @Column(name="menu_list")
-    private List<Menu> menuList;
-
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
-    @Builder
-    public static class Menu{
-        private String desc;
-        private String name;
-        private Integer price;
-        private boolean recommend;
-
-        public Menu(String desc, String name, Integer price, boolean recommend) {
-            this.desc = desc;
-            this.name = name;
-            this.price = price;
-            this.recommend = recommend;
-        }
-    }
-
     @Builder
     public DinerDetail(long confirmId, String tel, String mainPhoto,
                        String name,Address address, int x, int y,
                        String category1, String category2,
                        int tasteRank, int priceRank, int moodRank,
-                       int kindnessRank, int parkingRank,
-                       List<String> photoList, List<Menu> menuList) {
+                       int kindnessRank, int parkingRank) {
         this.confirmId = confirmId;
         this.tel = tel;
         this.mainPhoto = mainPhoto;
@@ -123,7 +94,5 @@ public class DinerDetail {
         this.moodRank = moodRank;
         this.kindnessRank = kindnessRank;
         this.parkingRank = parkingRank;
-        this.photoList = photoList;
-        this.menuList = menuList;
     }
 }
