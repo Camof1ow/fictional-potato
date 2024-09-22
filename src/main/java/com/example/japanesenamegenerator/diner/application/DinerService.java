@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,9 +38,18 @@ public class DinerService {
     }
 
     public Page<DinerInfoResponseDTO> getDinersInArea(Double lon1, Double lon2, Double lat1, Double lat2, Pageable pageable) {
-        Boolean isValid = coordIsValid(lon1, lon2, lat1, lat2);
         //todo : lon1 lon2 , lat1 lat2 크기 비교 후 순서대로.
-        return dinerQueryRepository.findAllByCoordinate(lon1, lon2, lat1, lat2, pageable);
+
+        Page<DinerInfoResponseDTO> allByCoordinate = dinerQueryRepository.findAllByCoordinate(
+                Math.min(lon1, lon2), Math.max(lon1, lon2),
+                Math.min(lat1, lat2), Math.max(lat1, lat2)
+                , pageable);
+
+        if(allByCoordinate.getTotalElements() == 0){
+            System.out.println("수집로직필요");
+        }
+
+        return allByCoordinate;
     }
 
     public DinerDetailResponseDTO getDinerDetail(Long confirmId) {
@@ -52,22 +60,5 @@ public class DinerService {
 
         return DinerDetailResponseDTO.from(byConfirmId, dinerComments, menuList,photoList);
     }
-
-    private Boolean coordIsValid(Double lon1, Double lon2, Double lat1, Double lat2) {
-
-        if (lat1 == null || lat2 == null || lon1 == null || lon2 == null) {
-            return false;
-
-        } else if (lat1.isNaN() || lat2.isNaN() || lon1.isNaN() || lon2.isNaN()) {
-            return false;
-
-        } else if (lat1.isInfinite() || lat2.isInfinite() || lon1.isInfinite() || lon2.isInfinite()) {
-            return false;
-        } else {
-            return true;
-        }
-
-    }
-
 
 }

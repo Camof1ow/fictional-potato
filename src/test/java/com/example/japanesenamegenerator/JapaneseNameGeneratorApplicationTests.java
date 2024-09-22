@@ -81,15 +81,12 @@ class JapaneseNameGeneratorApplicationTests {
 
                         pageNo++;
                         collectedCount += filteredList.size();
-
                     }
-
                 }
             }
             while (flag);
             pageNo = 1;
         }
-
     }
     //https://place.map.kakao.com/880498914
 
