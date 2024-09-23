@@ -1,5 +1,6 @@
 package com.example.japanesenamegenerator;
 
+import com.example.japanesenamegenerator.common.util.CoordinateUtil;
 import com.example.japanesenamegenerator.config.RetryOnTimeoutInterceptor;
 import com.example.japanesenamegenerator.diner.application.DinerService;
 import com.example.japanesenamegenerator.diner.application.response.PlaceData;
@@ -35,7 +36,7 @@ class JapaneseNameGeneratorApplicationTests {
 //    private DinerPhotoRepository dinerPhotoRepository;
 
 
-    //    @Test
+//    @Test
     void contextLoads() throws IOException {
 
         Map<String, String> map = getHeaders();
@@ -124,11 +125,12 @@ class JapaneseNameGeneratorApplicationTests {
     }
 
     @Test
-    void testtest(){
-            Long confirm_id = 303807L;
+    void coordinateConvertTest() {
 
-
-
+        DinerInfo byId = dinerInfoRepository.findById(1).orElse(null);
+        Map<String, Integer> wCongnamul = CoordinateUtil.convertWCongnamul(byId.getLat(), byId.getLon());
+        Map<String, Double> epsg5181 = CoordinateUtil.convertToWGS84(byId.getX(), byId.getY());
+        System.out.println();
     }
 
 
@@ -184,7 +186,6 @@ class JapaneseNameGeneratorApplicationTests {
 //            }
 //        }
 //    }
-
 
 
     private static String unWrapJsonString(String input) {
@@ -292,5 +293,17 @@ class JapaneseNameGeneratorApplicationTests {
 
         return coordinates;
     }
+
+    public static class Wcongnamul{
+
+        private Double x;
+        private Double y;
+
+        public Wcongnamul(Double x, Double y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
 
 }
