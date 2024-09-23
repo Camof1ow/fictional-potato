@@ -128,7 +128,7 @@ class JapaneseNameGeneratorApplicationTests {
     void coordinateConvertTest() {
 
         DinerInfo byId = dinerInfoRepository.findById(1).orElse(null);
-        Map<String, Integer> wCongnamul = CoordinateUtil.convertWCongnamul(byId.getLat(), byId.getLon());
+        Map<String, Integer> wCongnamul = CoordinateUtil.convertToWCongnamul(byId.getLat(), byId.getLon());
         Map<String, Double> epsg5181 = CoordinateUtil.convertToWGS84(byId.getX(), byId.getY());
         System.out.println();
     }

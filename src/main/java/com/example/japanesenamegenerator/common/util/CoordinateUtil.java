@@ -17,7 +17,7 @@ public class CoordinateUtil {
 
     }
 
-    public static Map<String,Integer> convertWCongnamul(Double lat, Double lon) {
+    public static Map<String,Integer> convertToWCongnamul(Double lat, Double lon) {
 
         CoordinateTransformFactory ctFactory = new CoordinateTransformFactory();
         CoordinateTransform transformer = ctFactory.createTransform(crsWGS84, crsKakao);
