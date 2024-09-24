@@ -456,23 +456,24 @@ public class PlaceDetailDTO {
         List<DinerMenu> menuList = new ArrayList<>();
         if (this.getMenuInfo() != null) {
             menuList = this.getMenuInfo().getMenuList().stream()
-                    .filter(Objects::nonNull)
-                    .map(
-                            menu -> {
-                                Integer menuPrice = null;
-                                if (menu.getPrice() != null) {
-                                    String priceToString = menu.getPrice().replaceAll("[^0-9]", "");
-                                    menuPrice = priceToString.isEmpty() ? null : Integer.parseInt(priceToString);
-                                }
+                .filter(Objects::nonNull)
+                .map(
+                    menu -> {
+                        Integer menuPrice = null;
+                        if (menu.getPrice() != null) {
+                            String priceToString = menu.getPrice().replaceAll("[^0-9]", "");
+                            menuPrice = priceToString.isEmpty() ? null : Integer.parseInt(priceToString);
+                        }
 
-                                return DinerMenu.builder()
-                                        .desc(menu.getDesc())
-                                        .name(menu.getMenu())
-                                        .price(menuPrice)
-                                        .recommend(menu.isRecommend())
-                                        .build();
-                            }
-                    ).toList();
+                        return DinerMenu.builder()
+                                .confirmId(basicInfo.getCid())
+                                .desc(menu.getDesc())
+                                .name(menu.getMenu())
+                                .price(menuPrice)
+                                .recommend(menu.isRecommend())
+                                .build();
+                    }
+                ).toList();
         }
         return menuList;
     }
@@ -487,7 +488,7 @@ public class PlaceDetailDTO {
                     photoObject -> photoList.add(photoObject.orgurl)
             ));
             return photoList.stream().map(url -> DinerPhoto.builder()
-                    .confirmId(this.getBasicInfo().getCid())
+                    .confirmId(basicInfo.getCid())
                     .photoUrl(url)
                     .build()).toList();
         } else {
