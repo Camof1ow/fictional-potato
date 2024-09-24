@@ -55,6 +55,4 @@ public class CoordinateUtil {
         map.put("lat", destCoord.y);
         return map;
     }
-
-
 }

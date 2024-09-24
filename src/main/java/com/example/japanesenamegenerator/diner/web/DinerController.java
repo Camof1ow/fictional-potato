@@ -25,33 +25,38 @@ public class DinerController {
             parameters = {
                     @Parameter(
                             name = "lon1",
-                            description = "범위의 최하단 경도",
+                            description = "좌표 좌상단의 longitude",
                             example = "126.99"
                     ),
                     @Parameter(
                             name = "lon2",
-                            description = "범위의 최상단 경도",
+                            description = "좌표 우하단의 longitude",
                             example = "126.99885"
                     ),
                     @Parameter(
                             name = "lat1",
-                            description = "범위의 최좌측 위도",
+                            description = "좌표 좌상단의 latitude",
                             example = "37.533"
                     ),
                     @Parameter(
                             name = "lat2",
-                            description = "범위의 최우측 위도",
+                            description = "좌표 우하단의 latitude",
                             example = "37.539"
                     ),
                     @Parameter(
                             name = "page",
-                            description = "조회 할 페이지",
+                            description = "조회할 페이지 번호 (0부터 시작)",
                             example = "0"
                     ),
                     @Parameter(
                             name = "size",
-                            description = "페이지 사이즈",
+                            description = "한 페이지에 포함될 데이터 개수",
                             example = "10"
+                    ),
+                    @Parameter(
+                            name = "sort",
+                            description = "정렬 기준 (예: reviewCount, ratingCount, ratingAverage)",
+                            example = "review_count,desc"
                     )
             }
     )

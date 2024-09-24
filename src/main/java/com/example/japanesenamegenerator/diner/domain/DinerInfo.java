@@ -35,7 +35,7 @@ public class DinerInfo {
     @Column(name = "category_depth5")
     private String categoryDepth5;
     @Column(name = "confirm_id", unique = true)
-    private String confirmId;
+    private Integer confirmId;
     private int x;
     private int y;
     @Column(name = "rating_average")
@@ -64,32 +64,6 @@ public class DinerInfo {
     private String addinfoSmokingroom;
     @Column(name = "wifi")
     private String addinfoWifi;
-//
-//    @Column(columnDefinition = "json",name = "time_list")
-//    @Convert(converter = TimeListConverter.class)
-//    private List<TimeObject> timeList;
-//
-//    public static class TimeListConverter implements AttributeConverter<List<TimeObject>, String> {
-//        private final ObjectMapper objectMapper = new ObjectMapper();
-//
-//        @Override
-//        public String convertToDatabaseColumn(List<TimeObject> attribute) {
-//            try {
-//                return objectMapper.writeValueAsString(attribute);
-//            } catch (JsonProcessingException e) {
-//                throw new RuntimeException("Failed to convert List<TimeObject> to JSON string.", e);
-//            }
-//        }
-//
-//        @Override
-//        public List<TimeObject> convertToEntityAttribute(String dbData) {
-//            try {
-//                return objectMapper.readValue(dbData, objectMapper.getTypeFactory().constructCollectionType(List.class, TimeObject.class));
-//            } catch (IOException e) {
-//                throw new RuntimeException("Failed to convert JSON string to List<TimeObject>.", e);
-//            }
-//        }
-//    }
 
 
     public DinerInfo(Place place){
@@ -105,7 +79,7 @@ public class DinerInfo {
         this.categoryDepth4 = place.getCate_name_depth4();
         this.categoryDepth5 = place.getCate_name_depth5();
 
-        this.confirmId = place.getConfirmid();
+        this.confirmId = Integer.parseInt(place.getConfirmid());
         this.x = place.getX();
         this.y = place.getY();
 
@@ -124,11 +98,6 @@ public class DinerInfo {
         this.addinfoPet = place.getAddinfo_pet();
         this.addinfoSmokingroom = place.getAddinfo_smokingroom();
         this.addinfoWifi = place.getAddinfo_wifi();
-//        this.timeList = new ArrayList<>();
-//        List<Place.OpenOff.PeriodList> periodList = place.getOpenoff().getPeriodList();
-//        if(!periodList.isEmpty()){
-//            periodList.forEach( pl -> timeList.addAll(pl.getTimeList()));
-//        }
 
     }
 

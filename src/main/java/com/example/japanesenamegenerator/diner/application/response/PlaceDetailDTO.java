@@ -3,6 +3,7 @@ package com.example.japanesenamegenerator.diner.application.response;
 import com.example.japanesenamegenerator.diner.domain.DinerComment;
 import com.example.japanesenamegenerator.diner.domain.DinerDetail;
 import com.example.japanesenamegenerator.diner.domain.DinerMenu;
+import com.example.japanesenamegenerator.diner.domain.DinerPhoto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -372,7 +373,7 @@ public class PlaceDetailDTO {
         Review comment = this.getComment();
         BasicInfo basicInfo = this.getBasicInfo();
         if (comment == null || comment.getList() == null || comment.getList().isEmpty()) {
-            return null;
+            return new ArrayList<>();
         }
 
         return comment.getList().stream().map(com -> DinerComment.builder()
@@ -390,7 +391,7 @@ public class PlaceDetailDTO {
     public DinerDetail toDetailEntity() {
         try {
             BasicInfo basicInfo = this.getBasicInfo();
-            if(basicInfo == null) {
+            if (basicInfo == null) {
                 return null;
             }
             StrengthCount taste = null;
@@ -408,25 +409,18 @@ public class PlaceDetailDTO {
                 parking = strengthCounts.stream().filter(strengthCount -> strengthCount.id == 4).findFirst().orElseGet(() -> null);
             }
 
-
             int tasteRank = taste != null ? taste.getCount() : 0;
             int priceRank = price != null ? price.getCount() : 0;
             int kindnessRank = kindness != null ? kindness.getCount() : 0;
             int moodRank = mood != null ? mood.getCount() : 0;
             int parkingRank = parking != null ? parking.getCount() : 0;
 
-            List<String> photoList = new ArrayList<>();
-            if (this.getPhoto() != null) {
-                photoList = this.getPhoto().getPhotoList().getFirst().getList().stream()
-                        .map(Photo.PhotoUrl::getOrgurl).toList();
-            }
             String name = basicInfo.getPlacenamefull();
 
             boolean newAddrIsExist = basicInfo.getAddress().getNewaddr() != null;
             String newAddr = !newAddrIsExist ? null : basicInfo.getAddress().getNewaddr().getNewaddrfull();
             String zipcode = !newAddrIsExist ? null : basicInfo.getAddress().getNewaddr().getBsizonno();
             String full = basicInfo.getAddress().getRegion().getNewaddrfullname();
-
 
             return DinerDetail.builder()
                     .confirmId(basicInfo.getCid())
@@ -460,26 +454,48 @@ public class PlaceDetailDTO {
 
     public List<DinerMenu> toMenuEntities() {
         List<DinerMenu> menuList = new ArrayList<>();
-        BasicInfo basicInfo = this.getBasicInfo();
-
         if (this.getMenuInfo() != null) {
-            menuList = this.getMenuInfo().getMenuList().stream().map(
-                    menu -> {
-                        Integer menuPrice = null;
-                        try {
-                            menuPrice = Integer.parseInt(menu.getPrice().replaceAll("[^0-9]", ""));
-                        } catch (Exception e) {
-                        }
+            menuList = this.getMenuInfo().getMenuList().stream()
+                    .filter(Objects::nonNull)
+                    .map(
+                            menu -> {
+                                Integer menuPrice = null;
+                                if (menu.getPrice() != null) {
+                                    String priceToString = menu.getPrice().replaceAll("[^0-9]", "");
+                                    menuPrice = priceToString.isEmpty() ? null : Integer.parseInt(priceToString);
+                                }
 
-                        return DinerMenu.builder()
-                                .desc(menu.getDesc())
-                                .name(menu.getMenu())
-                                .price(menuPrice)
-                                .recommend(menu.isRecommend())
-                                .build();
-                    }
-            ).toList();
+                                return DinerMenu.builder()
+                                        .desc(menu.getDesc())
+                                        .name(menu.getMenu())
+                                        .price(menuPrice)
+                                        .recommend(menu.isRecommend())
+                                        .build();
+                            }
+                    ).toList();
         }
         return menuList;
     }
+
+    public List<DinerPhoto> toPhotoEntities() {
+
+        Photo photo = this.getPhoto();
+
+        if (this.getBasicInfo() != null && photo != null && !photo.getPhotoList().isEmpty()) {
+            List<String> photoList = new ArrayList<>();
+            photo.getPhotoList().forEach(list -> list.getList().forEach(
+                    photoObject -> photoList.add(photoObject.orgurl)
+            ));
+            return photoList.stream().map(url -> DinerPhoto.builder()
+                    .confirmId(this.getBasicInfo().getCid())
+                    .photoUrl(url)
+                    .build()).toList();
+        } else {
+            return new ArrayList<>();
+        }
+
+
+    }
+
+
 }
