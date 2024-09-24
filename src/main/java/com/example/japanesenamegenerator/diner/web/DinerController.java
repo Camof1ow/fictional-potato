@@ -56,7 +56,7 @@ public class DinerController {
                     @Parameter(
                             name = "sort",
                             description = "정렬 기준 (예: reviewCount, ratingCount, ratingAverage)",
-                            example = "review_count,desc"
+                            example = "reviewCount,desc"
                     )
             }
     )
