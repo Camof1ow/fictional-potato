@@ -52,11 +52,6 @@ public class DinerController {
                             name = "size",
                             description = "한 페이지에 포함될 데이터 개수",
                             example = "10"
-                    ),
-                    @Parameter(
-                            name = "sort",
-                            description = "정렬 기준 (예: reviewCount, ratingCount, ratingAverage)",
-                            example = "reviewCount,desc"
                     )
             }
     )

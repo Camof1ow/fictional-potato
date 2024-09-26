@@ -34,14 +34,14 @@ class JapaneseNameGeneratorApplicationTests {
 
     @Test
     void crawlDinerInfoTest() throws IOException {
-//        //위도(Latitude) : 37.54185142033361 / 경도(Longitude) : 127.06312737569982
-//        // 위도(Latitude) : 37.48105289593571 / 경도(Longitude) : 127.15994439230138
-//        Double lat1 = 37.54185142033361;
-//        Double lon1 = 127.06312737569982;
-//        Double lat2 = 37.48105289593571;
-//        Double lon2 = 127.15994439230138;
-//        dinerService.crawlDinerInfo(lat1, lon1, lat2, lon2);
-        dinerService.crawlDetail();
+// 위도(Latitude) : 37.95838143690844 / 경도(Longitude) : 126.05429299214373
+// 위도(Latitude) : 36.992476968335964 / 경도(Longitude) : 127.90950910711592
+        Double lat1 = 36.992476968335964;
+        Double lon1 = 126.05429299214373;
+        Double lat2 = 37.95838143690844;
+        Double lon2 = 127.90950910711592;
+        dinerService.crawlDinerInfo(lat1, lon1, lat2, lon2);
+//        dinerService.crawlDetail();
 
     }
 
