@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -76,6 +77,18 @@ public class DinerController {
     @GetMapping("/detail/{confirm-id}")
     public DinerDetailResponseDTO getDinerDetail(@PathVariable(name="confirm-id") @Validated Long confirmId) {
         return dinerService.getDinerDetail(confirmId);
+    }
+
+    @Operation(summary = "10개 마커 램덤 생성",
+            description = "해당 지역 내 무작위 10곳 식당의 마커를 가져옵니다."
+
+    )
+    @GetMapping("/marker")
+    public List<Map<String, Double>> get10MarkersFromPlace(@RequestParam @Validated Double lon1,
+                                                           @RequestParam @Validated Double lon2,
+                                                           @RequestParam @Validated Double lat1,
+                                                           @RequestParam @Validated Double lat2){
+        return dinerService.get10MarkersFromPlace(lon1, lon2, lat1, lat2);
     }
 
 

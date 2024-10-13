@@ -1,6 +1,8 @@
 package com.example.japanesenamegenerator.diner.repository;
 
 import com.example.japanesenamegenerator.diner.domain.DinerInfo;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -20,6 +22,7 @@ public interface DinerInfoRepository extends JpaRepository<DinerInfo, Long> {
             "FROM DinerInfo c " +
             "LEFT JOIN DinerDetail d ON c.confirmId = d.confirmId " +
             "WHERE d.id IS NULL")
-    List<Long> findAllConfirmIdsWithoutDetail();
+    Page<Integer> findAllConfirmIdsWithoutDetail(Pageable pageable);
+
 
 }

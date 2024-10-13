@@ -233,6 +233,8 @@ public class PlaceDetailDTO {
         public Day day;
         public Gender gender;
         public Age age;
+
+        //Time ->
     }
 
     @Getter

@@ -9,22 +9,21 @@ import com.example.japanesenamegenerator.diner.domain.*;
 import com.example.japanesenamegenerator.diner.repository.*;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import okhttp3.Response;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.example.japanesenamegenerator.common.util.OkHttpUtil.*;
 
@@ -32,19 +31,53 @@ import static com.example.japanesenamegenerator.common.util.OkHttpUtil.*;
 @RequiredArgsConstructor
 public class DinerService {
 
+    private static final Logger log = LoggerFactory.getLogger(DinerService.class);
     private final DinerInfoRepository dinerInfoRepository;
     private final DinerCommentRepository dinerCommentRepository;
     private final DinerDetailRepository dinerDetailRepository;
     private final DinerQueryRepository dinerQueryRepository;
     private final DinerMenuRepository dinerMenuRepository;
     private final DinerPhotoRepository dinerPhotoRepository;
-    private final DataSource dataSource;
 
-    private static List<DinerDetail> dinerDetails = new ArrayList<>();
-    private static List<DinerMenu> dinerMenus = new ArrayList<>();
-    private static List<DinerPhoto> dinerPhotos = new ArrayList<>();
-    private static List<DinerComment> dinerComments = new ArrayList<>();
-    private static List<DinerInfo> dinerInfos = new ArrayList<>();
+    private static List<DinerInfo> dinerInfos = Collections.synchronizedList(new ArrayList<>());
+
+    private static List<DinerDetail> dinerDetails = Collections.synchronizedList(new ArrayList<>());
+    private static List<DinerMenu> dinerMenus = Collections.synchronizedList(new ArrayList<>());
+    private static List<DinerPhoto> dinerPhotos = Collections.synchronizedList(new ArrayList<>());
+    private static List<DinerComment> dinerComments = Collections.synchronizedList(new ArrayList<>());
+
+    ForkJoinPool customThreadPool = new ForkJoinPool(10);
+
+    private static ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    public synchronized void addDinerInfo(List<DinerInfo> filteredList) {
+        dinerInfos.addAll(filteredList);
+        if (dinerInfos.size() >= 50000) {
+            try {
+                dinerQueryRepository.upsertDinerInfos(dinerInfos);
+                dinerInfos.clear();
+
+            } catch (Exception e) {
+                log.error(e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void finalizeBatch() {
+        System.out.println("dinerInfos size : " + dinerInfos.size());
+        if (!dinerInfos.isEmpty()) {
+            try {
+                dinerQueryRepository.upsertDinerInfos(dinerInfos);
+                dinerInfos.clear();
+
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Transactional
     public void deleteInfo(Long confirmId) {
@@ -59,14 +92,31 @@ public class DinerService {
         }
     }
 
+    //10개 랜덤 픽
+    public List<Map<String, Double>> get10MarkersFromPlace(Double lon1, Double lon2, Double lat1, Double lat2) {
+        List<DinerInfo> dinerQueryRepository10placeByRandom = dinerQueryRepository.find10placeByRandom(
+                Math.min(lon1, lon2), Math.max(lon1, lon2),
+                Math.min(lat1, lat2), Math.max(lat1, lat2)
+        );
+
+        return dinerQueryRepository10placeByRandom.stream()
+                .map(
+                        info -> {
+                            Map<String, Double> map = new HashMap<>();
+                            map.put("lat", info.getLat());
+                            map.put("lon", info.getLon());
+                            return map;
+                        })
+                .toList();
+    }
 
     public Page<DinerInfoResponseDTO> getDinersInArea(Double lon1, Double lon2, Double lat1, Double lat2, Pageable pageable) {
         //todo : lon1 lon2 , lat1 lat2 크기 비교 후 순서대로.
 
         Page<DinerInfoResponseDTO> allByCoordinate = dinerQueryRepository.findAllByCoordinate(
                 Math.min(lon1, lon2), Math.max(lon1, lon2),
-                Math.min(lat1, lat2), Math.max(lat1, lat2)
-                , pageable);
+                Math.min(lat1, lat2), Math.max(lat1, lat2), pageable
+        );
 
         if (allByCoordinate.getTotalElements() == 0) {
             System.out.println("수집로직필요");
@@ -85,14 +135,14 @@ public class DinerService {
     }
 
     private Set<String> generateSquares(int x1, int y1, int x2, int y2) {
-        Set<String> coordinates = new HashSet<>();
-
-        for (int x = x1; x < x2; x += 500) {
-            for (int y = y1; y < y2; y += 500) {
-                coordinates.add(String.format("%d,%d,%d,%d", x, y, x + 500, y + 500));
-            }
-        }
-        return coordinates;
+        return IntStream.range(x1, x2)
+                .filter(x -> (x - x1) % 500 == 0)
+                .parallel() // 병렬 처리
+                .boxed()
+                .flatMap(x -> IntStream.range(y1, y2)
+                        .filter(y -> (y - y1) % 500 == 0)
+                        .mapToObj(y -> String.format("%d,%d,%d,%d", x, y, x + 500, y + 500)))
+                .collect(Collectors.toSet());
     }
 
     public void crawlDinerInfo(Double lat1, Double lon1, Double lat2, Double lon2) {
@@ -105,54 +155,51 @@ public class DinerService {
                 Math.max(wCongnamul1.get("x"), wCongnamul2.get("x")),
                 Math.max(wCongnamul1.get("y"), wCongnamul2.get("y"))
         );
+        // 큰 범위를 작은 범위 리스트로 만들어줌
 
-        Map<String, String> map = getHeaders();
-        for (String rect : rectangleCoordinates) {
-            int pageNo = 1;
 
-            while (true) {
-                String query = String.format("page=%d&rect=%s", pageNo, rect);
-                String requestUrl = "https://search.map.kakao.com/mapsearch/map.daum?sort=0&callback=jQuery18106682811413432699_1725244537609&q=%EC%8B%9D%EB%8B%B9&msFlag=S&mcheck=Y&" + query;
+        customThreadPool.submit(() -> // Async Configurator 만들어서 사용하도록 변경
+                // 쓰레풀 제한된 환경으로 비동기
+                //parallel stream 쓰면 안됨. -> 스프링에서 관리하는 쓰레드
+                rectangleCoordinates.forEach(rect -> { // CompletableFuture
+                    //작은 범위리스트 에서 다음의 로직을 실행.
 
-                try (Response response = requestGetWithHeaders(requestUrl, map)) {
-                    if (!response.isSuccessful() || response.request().url().pathSegments().contains("500.ko.html")) {
-                        map = getHeaders();  // 헤더를 다시 가져오는 로직 유지
-                        continue;
+                    int pageNo = 1;
+
+                    while (true) { // ->
+                        String query = String.format("page=%d&rect=%s", pageNo, rect);
+                        String requestUrl = "https://search.map.kakao.com/mapsearch/map.daum?sort=0&callback=jQuery18106682811413432699_1725244537609&q=%EC%8B%9D%EB%8B%B9&msFlag=S&mcheck=Y&" + query;
+                        Map<String, String> map = getHeaders();
+
+                        try (Response response = requestGetWithHeaders(requestUrl, map)) {
+                            if (!response.isSuccessful() || response.request().url().pathSegments().contains("500.ko.html")) {
+                                map = getHeaders();  // 헤더를 다시 가져오는 로직 유지
+                                continue;
+                            }
+
+                            String responseBody = unWrapJsonString(response.body().string());
+                            PlaceData placeDto = new ObjectMapper()
+                                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                    .readValue(responseBody, PlaceData.class);
+
+                            if (placeDto.getPlace_totalcount() == 0) break;  // 불러올 데이터가 없으면 루프 종료
+
+                            List<DinerInfo> filteredList = placeDto.getPlace().stream()
+                                    .map(DinerInfo::new)
+                                    .toList();
+                            addDinerInfo(filteredList);
+                            pageNo++;
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            log.error(e.getMessage());
+                        }
                     }
+                })
+        ).join();
 
-                    String responseBody = unWrapJsonString(response.body().string());
-                    PlaceData placeDto = new ObjectMapper()
-                            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                            .readValue(responseBody, PlaceData.class);
-
-                    if (placeDto.getPlace_totalcount() == 0) break;  // 불러올 데이터가 없으면 루프 종료
-
-                    List<DinerInfo> filteredList = placeDto.getPlace().stream()
-                            .map(DinerInfo::new)
-                            .filter(dinerInfo -> !dinerInfoRepository.existsByConfirmId((long) dinerInfo.getConfirmId()))
-                            .collect(
-                                    Collectors.toMap(
-                                            DinerInfo::getConfirmId,
-                                            dinerInfo -> dinerInfo,
-                                            (existing, replacement) -> replacement
-                                    )
-                            ).values().stream().toList();
-
-                    dinerInfos.addAll(filteredList);
-
-                    if (dinerInfos.size() >= 500) {
-                        dinerQueryRepository.upsertDinerInfos(dinerInfos);
-                        dinerInfos.clear();
-                    }
-                    pageNo++;
-
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-            }
-        }
+        finalizeBatch();
     }
-
 
 
     private static Map<String, String> getHeaders() {
@@ -181,71 +228,69 @@ public class DinerService {
         }
     }
 
-    public void insertDetail(PlaceDetailDTO placeDetailDTO) {
+    @Transactional
+    public synchronized void insertDetail(PlaceDetailDTO placeDetailDTO) {
         DinerDetail detail = placeDetailDTO.toDetailEntity();
         List<DinerComment> dinerCommentList = placeDetailDTO.toDinerComments();
         List<DinerMenu> menuEntities = placeDetailDTO.toMenuEntities();
         List<DinerPhoto> photoEntities = placeDetailDTO.toPhotoEntities();
-
-        if (detail == null) {
-            return;
-        }
 
         dinerDetails.add(detail);
         dinerMenus.addAll(menuEntities);
         dinerPhotos.addAll(photoEntities);
         dinerComments.addAll(dinerCommentList);
 
-        if (dinerDetails.size() >= 500) {
-            dinerDetailRepository.saveAll(dinerDetails);
+        try {
+            dinerQueryRepository.upsertDinerDetails(dinerDetails);
+            dinerQueryRepository.batchUpsertDinerMenus(dinerMenus);
+            dinerQueryRepository.batchUpsertDinerPhotos(dinerPhotos);
+            dinerQueryRepository.batchUpsertDinerComments(dinerComments);
+
             dinerDetails.clear();
-
-            dinerMenuRepository.saveAll(dinerMenus);
+            dinerComments.clear();
             dinerMenus.clear();
-
-            dinerPhotoRepository.saveAll(dinerPhotos);
             dinerPhotos.clear();
 
-            dinerCommentRepository.saveAll(dinerComments);
-            dinerComments.clear();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
         }
-
     }
 
+    @Transactional
     public void crawlDetail() {
-        List<Long> allConfirmIdsWithoutDetail = dinerInfoRepository.findAllConfirmIdsWithoutDetail();
 
-        ObjectMapper objectMapper = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        for (Long id : allConfirmIdsWithoutDetail) {
-            if (!dinerDetailRepository.existsByConfirmId(id)) {
-                String url = "https://place.map.kakao.com/main/v/" + id;
-                try (Response response = requestGetWithHeaders(url, null)) {
-                    String string = response.body().string();
-                    PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
-                    insertDetail(placeDetailDTO);
+        int page = 0; // 시작 페이지
+        int size = 1000; // 페이지 크기
+        Page<Integer> confirmIds; // 결과를 저장할 페이지 객체
 
-                } catch (IOException e) {
-                    System.out.println(e.getMessage());
-                }
+        do {
+            Pageable pageable = PageRequest.of(page, size); // 현재 페이지와 페이지 크기 설정
+            confirmIds = dinerInfoRepository.findAllConfirmIdsWithoutDetail(pageable); // 데이터 조회
+
+            if (confirmIds.hasContent()) {
+                List<Integer> confirmIdList = confirmIds.getContent();
+                confirmIdList.forEach(id -> {
+                    if (!dinerDetailRepository.existsByConfirmId((long) id)) {
+                        String url = "https://place.map.kakao.com/main/v/" + id;
+                        try (Response response = requestGetWithHeaders(url, null)) {
+                            String string = response.body().string();
+                            PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
+                            insertDetail(placeDetailDTO);
+
+                        } catch (IOException e) {
+                            System.out.println(e.getMessage());
+                        }
+                    }
+
+                });
+
+                page++; // 다음 페이지로 이동
             }
-        }
-
-        if (dinerDetails != null && !dinerDetails.isEmpty()) {
-            dinerDetailRepository.saveAll(dinerDetails);
-            dinerDetails.clear();
-
-            dinerMenuRepository.saveAll(dinerMenus);
-            dinerMenus.clear();
-
-            dinerPhotoRepository.saveAll(dinerPhotos);
-            dinerPhotos.clear();
-
-            dinerCommentRepository.saveAll(dinerComments);
-            dinerComments.clear();
-        }
-
+        } while (confirmIds.hasNext()); // 다음 페이지가 있는 동안 반복
     }
+
+    // Detail 영업시간 정보 -> Info -> 점심영업을 하는가 저녁영업을 하는거 쉬는요ㅕ일 -> 넣어버리면 되지않을까? -> Dto 필드생성 QueryDSL로 필드 조인.
 
 
 }

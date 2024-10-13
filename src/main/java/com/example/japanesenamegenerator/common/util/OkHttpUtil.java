@@ -6,8 +6,23 @@ import okhttp3.*;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class OkHttpUtil {
+
+    private static final OkHttpClient client = new OkHttpClient().newBuilder()
+            .connectTimeout(Duration.ofSeconds(15L))
+            .connectionPool(new ConnectionPool(5, 5, TimeUnit.MINUTES))
+            .readTimeout(Duration.ofSeconds(15L))
+            .addInterceptor(new RetryOnTimeoutInterceptor(5, 15000))
+            .build();
+    private static final OkHttpClient noRedirectClient = new OkHttpClient().newBuilder()
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(Duration.ofSeconds(120L))
+            .readTimeout(Duration.ofSeconds(120L))
+            .build();
 
 
     public static Response requestPost(String url, String requestBody)
@@ -20,11 +35,6 @@ public class OkHttpUtil {
 
     public static Response request(String method, String url, RequestBody body)
             throws IOException {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .retryOnConnectionFailure(true)
-                .connectTimeout(Duration.ofSeconds(120L))
-                .readTimeout(Duration.ofSeconds(120L))
-                .build();
 
         Request.Builder builder = new Request.Builder().url(url).method(method, body);
 //        header.forEach(builder::addHeader);
@@ -34,19 +44,12 @@ public class OkHttpUtil {
     }
 
     public static Response requestGetWithNoRedirect(String url, Map<String, String> header) throws IOException {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .followRedirects(false)
-                .followSslRedirects(false)
-                .retryOnConnectionFailure(true)
-                .connectTimeout(Duration.ofSeconds(120L))
-                .readTimeout(Duration.ofSeconds(120L))
-                .build();
 
         Request.Builder builder = new Request.Builder().url(url).method("GET", null);
         header.forEach(builder::addHeader);
         Request request = builder.build();
 
-        return client.newCall(request).execute();
+        return noRedirectClient.newCall(request).execute();
     }
 
 
@@ -63,11 +66,6 @@ public class OkHttpUtil {
 
     public static Response requestGetWithHeaders(String url, Map<String, String> header)
             throws IOException {
-        OkHttpClient client = new OkHttpClient().newBuilder()
-                .connectTimeout(Duration.ofSeconds(15L))
-                .readTimeout(Duration.ofSeconds(15L))
-                .addInterceptor(new RetryOnTimeoutInterceptor(5, 15000))
-                .build();
 
         Request.Builder builder = new Request.Builder().url(url).method("GET", null);
         if (header != null) {
