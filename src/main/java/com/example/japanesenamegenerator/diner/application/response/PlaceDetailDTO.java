@@ -5,6 +5,7 @@ import com.example.japanesenamegenerator.diner.domain.DinerDetail;
 import com.example.japanesenamegenerator.diner.domain.DinerMenu;
 import com.example.japanesenamegenerator.diner.domain.DinerPhoto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,6 +18,7 @@ import java.util.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PlaceDetailDTO {
 
+    @JsonProperty("isExist")
     private boolean isExist;
     private String isMapUser;
 
@@ -500,5 +502,7 @@ public class PlaceDetailDTO {
 
     }
 
-
+    public boolean isExist() {
+        return isExist;
+    }
 }

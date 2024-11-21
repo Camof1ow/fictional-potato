@@ -1,23 +1,15 @@
 package com.example.japanesenamegenerator;
 
 import com.example.japanesenamegenerator.common.util.CoordinateUtil;
-import com.example.japanesenamegenerator.config.RetryOnTimeoutInterceptor;
 import com.example.japanesenamegenerator.diner.application.DinerService;
-import com.example.japanesenamegenerator.diner.application.response.PlaceData;
-import com.example.japanesenamegenerator.diner.application.response.PlaceDetailDTO;
 import com.example.japanesenamegenerator.diner.domain.*;
 import com.example.japanesenamegenerator.diner.repository.*;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @SpringBootTest
 class JapaneseNameGeneratorApplicationTests {
@@ -34,26 +26,30 @@ class JapaneseNameGeneratorApplicationTests {
 
     @Test
     void crawlDinerInfoTest() throws IOException {
-// 위도(Latitude) : 37.95838143690844 / 경도(Longitude) : 126.05429299214373
-// 위도(Latitude) : 36.992476968335964 / 경도(Longitude) : 127.90950910711592
-        Double lat1 = 36.992476968335964;
-        Double lon1 = 126.05429299214373;
-        Double lat2 = 37.95838143690844;
-        Double lon2 = 127.90950910711592;
+// 위도(Latitude) : 37.53860806879741 / 경도(Longitude) : 126.95827843632695
+// 위도(Latitude) : 37.53020866625238 / 경도(Longitude) : 126.97415120981688
+        Double lat1 = 37.53860806879741;
+        Double lon1 = 126.95827843632695;
+        Double lat2 = 37.53020866625238;
+        Double lon2 = 126.97415120981688;
         dinerService.crawlDinerInfo(lat1, lon1, lat2, lon2);
-//        dinerService.crawlDetail();
 
     }
-
 
     @Test
-    void coordinateConvertTest() {
-
-        DinerInfo byId = dinerInfoRepository.findById(1L).orElse(null);
-        Map<String, Integer> wCongnamul = CoordinateUtil.convertToWCongnamul(byId.getLat(), byId.getLon());
-        Map<String, Double> epsg5181 = CoordinateUtil.convertToWGS84(byId.getX(), byId.getY());
-        System.out.println();
+    void crawlDinerDetailTest() {
+        dinerService.crawlDetail();
     }
+//
+//
+//    @Test
+//    void coordinateConvertTest() {
+//
+//        DinerInfo byId = dinerInfoRepository.findById(1L).orElse(null);
+//        Map<String, Integer> wCongnamul = CoordinateUtil.convertToWCongnamul(byId.getLat(), byId.getLon());
+//        Map<String, Double> epsg5181 = CoordinateUtil.convertToWGS84(byId.getX(), byId.getY());
+//        System.out.println();
+//    }
 
 
 //    @Test

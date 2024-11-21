@@ -16,12 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,8 +45,6 @@ public class DinerService {
     private static List<DinerMenu> dinerMenus = Collections.synchronizedList(new ArrayList<>());
     private static List<DinerPhoto> dinerPhotos = Collections.synchronizedList(new ArrayList<>());
     private static List<DinerComment> dinerComments = Collections.synchronizedList(new ArrayList<>());
-
-    ForkJoinPool customThreadPool = new ForkJoinPool(10);
 
     private static ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -157,47 +155,7 @@ public class DinerService {
         );
         // 큰 범위를 작은 범위 리스트로 만들어줌
 
-
-        customThreadPool.submit(() -> // Async Configurator 만들어서 사용하도록 변경
-                // 쓰레풀 제한된 환경으로 비동기
-                //parallel stream 쓰면 안됨. -> 스프링에서 관리하는 쓰레드
-                rectangleCoordinates.forEach(rect -> { // CompletableFuture
-                    //작은 범위리스트 에서 다음의 로직을 실행.
-
-                    int pageNo = 1;
-
-                    while (true) { // ->
-                        String query = String.format("page=%d&rect=%s", pageNo, rect);
-                        String requestUrl = "https://search.map.kakao.com/mapsearch/map.daum?sort=0&callback=jQuery18106682811413432699_1725244537609&q=%EC%8B%9D%EB%8B%B9&msFlag=S&mcheck=Y&" + query;
-                        Map<String, String> map = getHeaders();
-
-                        try (Response response = requestGetWithHeaders(requestUrl, map)) {
-                            if (!response.isSuccessful() || response.request().url().pathSegments().contains("500.ko.html")) {
-                                map = getHeaders();  // 헤더를 다시 가져오는 로직 유지
-                                continue;
-                            }
-
-                            String responseBody = unWrapJsonString(response.body().string());
-                            PlaceData placeDto = new ObjectMapper()
-                                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                                    .readValue(responseBody, PlaceData.class);
-
-                            if (placeDto.getPlace_totalcount() == 0) break;  // 불러올 데이터가 없으면 루프 종료
-
-                            List<DinerInfo> filteredList = placeDto.getPlace().stream()
-                                    .map(DinerInfo::new)
-                                    .toList();
-                            addDinerInfo(filteredList);
-                            pageNo++;
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            log.error(e.getMessage());
-                        }
-                    }
-                })
-        ).join();
-
+        rectangleCoordinates.forEach(this::accept);
         finalizeBatch();
     }
 
@@ -270,24 +228,70 @@ public class DinerService {
 
             if (confirmIds.hasContent()) {
                 List<Integer> confirmIdList = confirmIds.getContent();
-                confirmIdList.forEach(id -> {
-                    if (!dinerDetailRepository.existsByConfirmId((long) id)) {
-                        String url = "https://place.map.kakao.com/main/v/" + id;
-                        try (Response response = requestGetWithHeaders(url, null)) {
-                            String string = response.body().string();
-                            PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
-                            insertDetail(placeDetailDTO);
-
-                        } catch (IOException e) {
-                            System.out.println(e.getMessage());
-                        }
-                    }
-
-                });
-
-                page++; // 다음 페이지로 이동
+                confirmIdList.forEach(this::detailAccept);
+                page++;
             }
         } while (confirmIds.hasNext()); // 다음 페이지가 있는 동안 반복
+    }
+
+//    @Async
+    public void accept(String rect) { // CompletableFuture
+
+        int pageNo = 1;
+
+        while (true) { // ->
+            String query = String.format("page=%d&rect=%s", pageNo, rect);
+            String requestUrl = "https://search.map.kakao.com/mapsearch/map.daum?sort=0&callback=jQuery18106682811413432699_1725244537609&q=%EC%8B%9D%EB%8B%B9&msFlag=S&mcheck=Y&" + query;
+            Map<String, String> map = getHeaders();
+
+            try (Response response = requestGetWithHeaders(requestUrl, map)) {
+                if (!response.isSuccessful() || response.request().url().pathSegments().contains("500.ko.html")) {
+                    map = getHeaders();  // 헤더를 다시 가져오는 로직 유지
+                    continue;
+                }
+
+                String responseBody = unWrapJsonString(response.body().string());
+                PlaceData placeDto = new ObjectMapper()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                        .readValue(responseBody, PlaceData.class);
+
+                if (placeDto.getPlace_totalcount() == 0) break;  // 불러올 데이터가 없으면 루프 종료
+
+                List<DinerInfo> filteredList = placeDto.getPlace().stream()
+                        .map(DinerInfo::new)
+                        .toList();
+                addDinerInfo(filteredList);
+                pageNo++;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error(e.getMessage());
+            }
+        }
+    }
+
+    @Transactional
+//    @Async
+    public void detailAccept(Integer id) {
+        if (!dinerDetailRepository.existsByConfirmId((long) id)) {
+            String url = "https://place.map.kakao.com/main/v/" + id;
+            try (Response response = requestGetWithHeaders(url, null)) {
+                String string = response.body().string();
+                PlaceDetailDTO placeDetailDTO = objectMapper.readValue(string, PlaceDetailDTO.class);
+                if(!placeDetailDTO.isExist() ||
+                    !placeDetailDTO.getBasicInfo().getCategory().getCate1name().equals("음식점")){
+
+                    deleteInfo((long)id);
+
+                }else {
+                    insertDetail(placeDetailDTO);
+                }
+
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
     }
 
     // Detail 영업시간 정보 -> Info -> 점심영업을 하는가 저녁영업을 하는거 쉬는요ㅕ일 -> 넣어버리면 되지않을까? -> Dto 필드생성 QueryDSL로 필드 조인.
